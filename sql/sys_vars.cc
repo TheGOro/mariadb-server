@@ -2654,7 +2654,7 @@ static Sys_var_ulong Sys_net_retry_count(
 
 static Sys_var_mybool Sys_old_mode(
        "old", "Use compatible behavior from previous MariaDB version. See also --old-mode",
-       SESSION_VAR(old_mode), CMD_LINE(OPT_ARG), DEFAULT(FALSE));
+       SESSION_VAR(old_mode), CMD_LINE(OPT_ARG), DEFAULT(FALSE), 0, NOT_IN_BINLOG, 0, 0, DEPRECATED("'@@old_mode'"));
 
 static const char *alter_algorithm_modes[]= {"DEFAULT", "COPY", "INPLACE",
 "NOCOPY", "INSTANT", NULL};
@@ -3755,6 +3755,9 @@ static const char *old_mode_names[]=
   "NO_PROGRESS_INFO",
   "ZERO_DATE_TIME_CAST",
   "UTF8_IS_UTF8MB3",
+  "INDEX_MASKING",
+  "CHECKSUM_FORMATTING",
+  "ENABLE_PROGRESS_REPORT",
   0
 };
 

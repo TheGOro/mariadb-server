@@ -114,8 +114,8 @@ SET @@global.old_mode = 4;
 SELECT @@global.old_mode;
 @@global.old_mode
 ZERO_DATE_TIME_CAST
-SET @@global.old_mode = 16;
-ERROR 42000: Variable 'old_mode' can't be set to the value of '16'
+SET @@global.old_mode = 128;
+ERROR 42000: Variable 'old_mode' can't be set to the value of '128'
 SELECT @@global.old_mode;
 @@global.old_mode
 ZERO_DATE_TIME_CAST
@@ -263,4 +263,30 @@ SET @@collation_server = @save_collation_server;
 SET @@collation_database = @save_collation_database;
 #
 # End of 10.6 test
+#
+#
+# Beginning of 10.7 test
+#
+#
+# MDEV-24920: Merge "old" SQL variable to "old_mode" sql variable
+#
+SELECT @@OLD_MODE;
+@@OLD_MODE
+UTF8_IS_UTF8MB3
+SET @save_old_mode = @@OLD_MODE;
+SET @@OLD_MODE= INDEX_MASKING;
+SELECT @@OLD_MODE;
+@@OLD_MODE
+INDEX_MASKING
+SET @@OLD_MODE= ENABLE_PROGRESS_REPORT;
+SELECT @@OLD_MODE;
+@@OLD_MODE
+ENABLE_PROGRESS_REPORT
+SET @@OLD_MODE= CHECKSUM_FORMATTING;
+SELECT @@OLD_MODE;
+@@OLD_MODE
+CHECKSUM_FORMATTING
+SET @@OLD_MODE= @save_old_mode;
+#
+# End of 10.7 test
 #

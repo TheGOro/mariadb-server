@@ -19135,6 +19135,8 @@ evaluate_join_record(JOIN *join, JOIN_TAB *join_tab,
     }
     else
     {
+      if (join->thd->is_error())
+        DBUG_RETURN(NESTED_LOOP_ERROR);
       join->thd->get_stmt_da()->inc_current_row_for_warning();
       join_tab->read_record.unlock_row(join_tab);
     }

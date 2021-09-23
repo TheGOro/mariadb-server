@@ -3641,7 +3641,8 @@ row_ins(
 		   FTS_DOC_ID for history is enough.
 		*/
 		if (index->type & DICT_FTS) {
-		} else if (!(index->vers_skip_fts_doc_id()
+		} else if (!(index->table->versioned()
+			     && index->is_vers_fulltext()
 			     && node->vers_history_row())) {
 
 			dberr_t err = row_ins_index_entry_step(node, thr);

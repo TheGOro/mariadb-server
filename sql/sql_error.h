@@ -748,7 +748,7 @@ private:
   Sql_condition *push_warning(THD *thd,
                               const Sql_condition_identity *identity,
                               const char* msg,
-                              ulonglong current_error_index);
+                              ulong current_error_index);
 
   /**
     Add a new SQL-condition to the current list and increment the respective
@@ -1180,7 +1180,7 @@ public:
                               Sql_condition::enum_warning_level level,
                               const Sql_user_condition_identity &ucid,
                               const char* msg,
-                              ulonglong current_error_index)
+                              ulong current_error_index)
   {
     Sql_condition_identity tmp(sql_errno_arg, sqlstate, level, ucid);
     return get_warning_info()->push_warning(thd, &tmp, msg,

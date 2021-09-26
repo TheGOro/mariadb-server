@@ -664,7 +664,7 @@ void Warning_info::reserve_space(THD *thd, uint count)
 Sql_condition *Warning_info::push_warning(THD *thd,
                                           const Sql_condition_identity *value,
                                           const char *msg,
-                                          ulonglong current_error_index)
+                                          ulong current_error_index)
 {
   Sql_condition *cond= NULL;
 

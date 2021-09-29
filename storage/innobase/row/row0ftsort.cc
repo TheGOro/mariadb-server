@@ -1106,9 +1106,14 @@ fts_parallel_merge(
 
 	id = psort_info->psort_id;
 
-	row_fts_merge_insert(psort_info->psort_common->dup->index,
-			     psort_info->psort_common->new_table,
-			     psort_info->psort_common->all_info, id);
+	dberr_t error = row_fts_merge_insert(
+			psort_info->psort_common->dup->index,
+			psort_info->psort_common->new_table,
+			psort_info->psort_common->all_info, id);
+
+	if (error != DB_SUCCESS) {
+		psort_info->error = error;
+	}
 
 	psort_info->child_status = FTS_CHILD_COMPLETE;
 	os_event_set(psort_info->psort_common->merge_event);
@@ -1132,7 +1137,7 @@ row_fts_start_parallel_merge(
 	for (i = 0; i <  FTS_NUM_AUX_INDEX; i++) {
 		merge_info[i].psort_id = i;
 		merge_info[i].child_status = 0;
-
+		merge_info[i].error = DB_SUCCESS;
 		merge_info[i].thread_hdl = os_thread_create(
 			fts_parallel_merge,
 			(void*) &merge_info[i],
@@ -1237,7 +1242,7 @@ row_merge_write_fts_word(
 Read sorted FTS data files and insert data tuples to auxillary tables.
 @return DB_SUCCESS or error number */
 static
-void
+dberr_t
 row_fts_insert_tuple(
 /*=================*/
 	fts_psort_insert_t*
@@ -1254,6 +1259,11 @@ row_fts_insert_tuple(
 	ulint		position;
 	fts_string_t	token_word;
 	ulint		i;
+
+	/* FTS_DOC_ID value shouldn't exceed 4294967295 */
+	if (*in_doc_id >= 4294967295u) {
+		return DB_FTS_INVALID_DOCID;
+	}
 
 	/* Get fts_node for the FTS auxillary INDEX table */
 	if (ib_vector_size(word->nodes) > 0) {
@@ -1281,7 +1291,7 @@ row_fts_insert_tuple(
 			row_merge_write_fts_word(ins_ctx, word);
 		}
 
-		return;
+		return DB_SUCCESS;
 	}
 
 	/* Get the first field for the tokenized word */
@@ -1360,6 +1370,8 @@ row_fts_insert_tuple(
 
 	/* record the current Doc ID */
 	*in_doc_id = doc_id;
+
+	return DB_SUCCESS;
 }
 
 /*********************************************************************//**
@@ -1727,7 +1739,7 @@ row_fts_merge_insert(
 				min_rec++;
 
 				if (min_rec >= (int) fts_sort_pll_degree) {
-					row_fts_insert_tuple(
+					error = row_fts_insert_tuple(
 						&ins_ctx, &new_word,
 						positions, &last_doc_id,
 						NULL);
@@ -1752,7 +1764,7 @@ row_fts_merge_insert(
 			min_rec = sel_tree[0];
 
 			if (min_rec ==  -1) {
-				row_fts_insert_tuple(
+				error = row_fts_insert_tuple(
 					&ins_ctx, &new_word,
 					positions, &last_doc_id,
 					NULL);
@@ -1765,10 +1777,13 @@ row_fts_merge_insert(
 			mrec[min_rec], index, offsets[min_rec],
 			tuple_heap);
 
-		row_fts_insert_tuple(
+		error = row_fts_insert_tuple(
 			&ins_ctx, &new_word, positions,
 			&last_doc_id, dtuple);
 
+		if (error != DB_SUCCESS) {
+			goto exit;
+		}
 
 		ROW_MERGE_READ_GET_NEXT(min_rec);
 

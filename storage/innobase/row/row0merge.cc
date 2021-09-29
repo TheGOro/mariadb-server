@@ -4780,6 +4780,12 @@ wait_again:
 				} else {
 					for (j = 0; j < FTS_NUM_AUX_INDEX;
 					     j++) {
+						if (merge_info[j].error
+							== DB_SUCCESS) {
+							continue;
+						}
+
+						error = merge_info[j].error;
 
 						os_thread_join(merge_info[j]
 							       .thread_hdl);

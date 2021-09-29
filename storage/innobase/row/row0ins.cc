@@ -2841,6 +2841,13 @@ row_ins_sec_index_entry_low(
 	cursor.rtr_info = NULL;
 	ut_ad(thr_get_trx(thr)->id != 0);
 
+	/* FTS_DOC_ID shouldn't exceed the value 4294967295. */
+	if (index->table->fts_doc_id_index == index
+	    && mach_read_from_8((const byte*) entry->fields[0].data)
+		>= 4294967295u) {
+		DBUG_RETURN(DB_FTS_INVALID_DOCID);
+	}
+
 	mtr.start();
 
 	if (index->table->is_temporary()) {

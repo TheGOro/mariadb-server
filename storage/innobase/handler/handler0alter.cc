@@ -6392,6 +6392,9 @@ oom:
 		my_error(ER_GET_ERRMSG, MYF(0), HA_ERR_DECRYPTION_FAILED, str.c_ptr(), engine);
 		break;
 	}
+	case DB_FTS_INVALID_DOCID:
+		my_error(HA_FTS_INVALID_DOCID, MYF(0));
+		break;
 	default:
 		my_error_innodb(error,
 				table_share->table_name.str,

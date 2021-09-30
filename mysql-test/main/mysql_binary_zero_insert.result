@@ -1,0 +1,44 @@
+##############################
+#      Setup
+##############################
+#
+# Saving old state
+#
+set @old_sql_mode= @@global.SQL_MODE;
+set @@global.SQL_MODE= "";
+#
+# Create table for data entry
+#
+CREATE TABLE tb (`id` int(11) NOT NULL AUTO_INCREMENT,`cb` longblob DEFAULT NULL,
+PRIMARY KEY (`id`)) ENGINE=myisam AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
+##############################
+#      Test Case
+##############################
+#
+# \0 (0x5c00 in binary) should be allowed in data strings if
+# --binary-mode is enabled.
+#
+FOUND 10 /\x5c\x00/ in binary_zero_inserts.sql
+# MYSQL --binary-mode test < MYSQL_TMP_DIR/binary_zero_inserts.sql
+#
+# Ensure a row exists from each insert statement with a \0
+#
+SELECT COUNT(*)=8 from tb;
+COUNT(*)=8
+1
+#
+# Ensure that the binary zero was parsed and exists in the row data
+# Note: We only look for 00 because the 5c only served as an escape
+#       in parsing.
+#
+# MYSQL_DUMP test tb --hex-blob | grep INSERT > MYSQL_TMP_DIR/dump.sql
+FOUND 10 /00/ in dump.sql
+#
+# A \0 should still be treated as end-of-query in binary mode.
+#
+# MYSQL --binary-mode -B test < MYSQL_TMP_DIR/binary_zero_eoq.sql
+##############################
+#      Cleanup
+##############################
+SET @@global.sql_mode= @old_sql_mode;
+drop table tb;

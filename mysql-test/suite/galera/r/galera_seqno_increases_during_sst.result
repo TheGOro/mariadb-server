@@ -1,0 +1,25 @@
+connection node_2;
+connection node_1;
+CALL mtr.add_suppression("\\[Warning\\] WSREP: .*: Could not open state file for reading: '.*grastate.dat'");
+CALL mtr.add_suppression("\\[Warning\\] WSREP: .*: access file\\(.*gvwstate.dat\\) failed\\(No such file or directory\\)");
+CALL mtr.add_suppression("\\[ERROR\\] WSREP: .*: Failed to remove page file '.*gcache.page.*': 2 \\(No such file or directory\\)");
+connection node_1;
+CREATE TABLE t1 (f1 INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT, f2 CHAR(1));
+connection node_2;
+Shutting down server ...
+connection node_1;
+CREATE EVENT e1 ON SCHEDULE EVERY 1 SECOND
+ENDS NOW() + INTERVAL 60 SECOND
+ON COMPLETION NOT PRESERVE
+DO
+INSERT INTO t1 (f2) VALUES ('a');
+Warnings:
+Warning	1105	Event scheduler is switched off, use SET GLOBAL event_scheduler=ON to enable it.
+SET GLOBAL event_scheduler=on;
+Restarting server ...
+connection node_2;
+Starting server ...
+connection node_1;
+SET GLOBAL event_scheduler=off;
+DROP EVENT e1;
+DROP TABLE t1;

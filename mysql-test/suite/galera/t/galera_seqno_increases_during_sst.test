@@ -1,0 +1,77 @@
+--source include/galera_cluster.inc
+--source include/have_innodb.inc
+--source include/have_debug_sync.inc
+
+# Suppress expected warnings:
+
+CALL mtr.add_suppression("\\[Warning\\] WSREP: .*: Could not open state file for reading: '.*grastate.dat'");
+CALL mtr.add_suppression("\\[Warning\\] WSREP: .*: access file\\(.*gvwstate.dat\\) failed\\(No such file or directory\\)");
+CALL mtr.add_suppression("\\[ERROR\\] WSREP: .*: Failed to remove page file '.*gcache.page.*': 2 \\(No such file or directory\\)");
+
+--connection node_1
+
+CREATE TABLE t1 (f1 INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT, f2 CHAR(1));
+
+# Initiate normal shutdown on the node 2:
+
+--connection node_2
+
+--echo Shutting down server ...
+--source include/shutdown_mysqld.inc
+
+# Wait until shutdown has been completed:
+
+--connection node_1
+
+--let $wait_condition = SELECT VARIABLE_VALUE = 1 FROM INFORMATION_SCHEMA.GLOBAL_STATUS WHERE VARIABLE_NAME = 'WSREP_CLUSTER_SIZE'
+--source include/wait_condition.inc
+
+# Force State Snapshot transfer by removing essential files from node 2:
+
+--remove_file $MYSQLTEST_VARDIR/mysqld.2/data/grastate.dat
+--remove_file $MYSQLTEST_VARDIR/mysqld.2/data/galera.cache
+--rmdir $MYSQLTEST_VARDIR/mysqld.2/data/mysql
+
+# Generate some transactions to increase the sequence number during SST:
+
+CREATE EVENT e1 ON SCHEDULE EVERY 1 SECOND
+ENDS NOW() + INTERVAL 60 SECOND
+ON COMPLETION NOT PRESERVE
+DO
+  INSERT INTO t1 (f2) VALUES ('a');
+
+SET GLOBAL event_scheduler=on;
+
+# Restart node 2:
+--echo Restarting server ...
+--exec echo "restart" > $MYSQLTEST_VARDIR/tmp/mysqld.2.expect
+
+--connection node_2
+
+--echo Starting server ...
+--let $start_mysqld_params=
+
+#--source include/start_mysqld.inc
+
+# Wait until node 2 is ready:
+
+--connection node_1
+
+--let $wait_condition = SELECT VARIABLE_VALUE = 2 FROM INFORMATION_SCHEMA.GLOBAL_STATUS WHERE VARIABLE_NAME = 'WSREP_CLUSTER_SIZE'
+--source include/wait_condition.inc
+
+# Wait for Donor state
+
+--let $wait_condition = SELECT VARIABLE_VALUE = 2 FROM INFORMATION_SCHEMA.GLOBAL_STATUS WHERE VARIABLE_NAME = 'WSREP_LOCAL_STATE'
+--source include/wait_condition.inc
+
+# Wait for Synced state
+
+--let $wait_condition = SELECT VARIABLE_VALUE = 4 FROM INFORMATION_SCHEMA.GLOBAL_STATUS WHERE VARIABLE_NAME = 'WSREP_LOCAL_STATE'
+--source include/wait_condition.inc
+
+SET GLOBAL event_scheduler=off;
+
+DROP EVENT e1;
+
+DROP TABLE t1;
